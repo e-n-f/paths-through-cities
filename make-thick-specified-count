@@ -1,0 +1,86 @@
+#!/usr/bin/perl
+
+open(IN, "<$ARGV[0]");
+$line = <IN>;
+close(IN);
+
+($minlat, $minlon, $maxlat, $maxlon) = split(/ /, $line);
+
+print "1 setlinecap\n";
+print "1 setlinejoin\n";
+
+$foot = .00000275;
+$maxdist = 3 * 5280 * $foot;
+
+$maxthick = 0;
+
+sub dist {
+	my ($olat, $olon, $lat, $lon) = @_;
+	my $latd = $lat - $olat;
+	my $lond = $lon - $olon;
+	my $dist = sqrt($latd * $latd + $lond * $lond);
+}
+
+while (<STDIN>) {
+	if (/#/) {
+		$olat = 0;
+	} else {
+		($lat, $lon) = split(/[ ,]/);
+
+		next if ($lat == 0 || $lon == 0);
+
+		($lon, $count) = split(/\//, $lon);
+		if ($count == 0) {
+			$count = 1;
+		}
+
+		if ($olat != 0 && $olon != 0 &&
+		    ($lat != $olat || $lon != $olon)) {
+			if ("$olat $olon" lt "$lat $lon") {
+				$key = "$olat $olon $lat $lon";
+			} else {
+				$key = "$lat $lon $olat $olon";
+			}
+
+			$thick = ($thick{$key} += $count);
+			if ($thick > $maxthick) {
+				$maxthick = $thick;
+			}
+		}
+
+		$olat = $lat;
+		$olon = $lon;
+	}
+}
+
+for $point (sort { $thick{$a} <=> $thick{$b} } keys(%thick)) {
+	($olat, $olon, $lat, $lon) = split(/ /, $point);
+	
+    	#next if dist($lat, $lon, $olat, $olon) > $maxdist;
+
+	$thick = $thick{$point} / $maxthick * 8;
+
+	if ($thick < .1) {
+		$gray = 1 - ($thick / .1);
+
+		if ($gray > .99) {
+			$gray = .99;
+		}
+
+		printf("%.3f setgray ", $gray);
+		#printf("%.3f .setopacityalpha ", 1 - $gray);
+		$thick = .1;
+	} else {
+		print "0 setgray ";
+	}
+
+	printf("%.4f setlinewidth ", $thick);
+
+	printf("%.3f %.3f moveto ",
+		612 * ($olon - $minlon) / ($maxlon - $minlon),
+		612 * ($olat - $minlat) / ($maxlat - $minlat));
+	printf("%.3f %.3f lineto stroke\n",
+		612 * ($lon - $minlon) / ($maxlon - $minlon),
+		612 * ($lat - $minlat) / ($maxlat - $minlat));
+}
+

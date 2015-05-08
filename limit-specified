@@ -1,0 +1,20 @@
+#!/usr/bin/perl
+
+open(IN, "<$ARGV[0]");
+$line = <IN>;
+close(IN);
+
+($minlat, $minlong, $maxlat, $maxlong) = split(/ /, $line);
+
+print STDERR "limit: $minlat,$minlong $maxlat,$maxlong\n";
+
+while (<STDIN>) {
+	($user, $date, $time, $where, $url, $title) = split(/ /);
+	($lat,$long) = split(/,/, $where);
+
+	if ($lat >= $minlat && $lat <= $maxlat) {
+		if ($long >= $minlong && $long <= $maxlong) {
+			print;
+		}
+	}
+}

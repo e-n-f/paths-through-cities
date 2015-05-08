@@ -1,0 +1,13 @@
+#!/bin/sh
+
+#(cat data/locationstream-201*.list | ./limit-specified $1 | ./uniq-list -u -d 1000 | ./uniq-list | head -10000; cat data/locationstream-201*.list | ./limit-specified $1 | ./plot-motion | head -30000) | ./a.out
+
+(
+	# cat rand3.geo | ./limit-specified-geo $1 | awk '($8 > 300)' | ./geo2list | head -10000
+
+	cat rand2.list data/locationstream*.list | ./limit-specified $1 | ./uniq-list -u -d 1000 | ./uniq-list | head -10000
+	(
+		cat rand3.geo | ./limit-specified-geo $1
+		cat data/locationstream-201*.list | ./limit-specified $1 | ./plot-motion
+	) | awk '($8 > 300)' | head -30000
+) | ./a.out

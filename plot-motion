@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+
+use POSIX;
+
+sub acos {
+    if ($_[0] * $_[0] > 1) {
+        return 0;
+    }
+
+    return atan2(sqrt(1 - $_[0] * $_[0]), $_[0]);
+}
+$pi = 4 * atan2(1, 1);
+$r = 6371 * .621371192;
+
+sub dist {
+	my $lat1 = $_[0] * $pi/180;
+	my $long1 = $_[1] * $pi/180;
+
+	my $lat2 = $_[2] * $pi/180;
+	my $long2 = $_[3] * $pi/180;
+
+	return (acos(sin($lat1) * sin($lat2)+cos($lat1) * cos($lat2) * cos($long2-$long1)) * $r * 5280);
+}
+
+while (<>) {
+	($user, $date, $time, $where, $rest) = split(/ /);
+	($year, $month, $day) = split(/-/, $date);
+	($hour, $minute, $second) = split(/:/, $time);
+
+	# print "$year $month $day $hour $minute $second - $location\n";
+	$year -= 1900;
+	$month -= 1;
+
+	($lat, $lon) = split(/,/, $where);
+	next if ($lat == 0 || $lon == 0);
+
+	if ($date ne $odate) {
+		print STDERR "$date\n";
+		$odate = $date;
+	}
+
+	$when = POSIX::mktime($second, $minute, $hour, $day, $month, $year, 0, 0, -1);
+
+	if ($owhen{$user} ne "" && $owhen{$user} != $when) {
+		$sec = $when - $owhen{$user};
+
+
+		$dist = dist($olat{$user}, $olon{$user}, $lat, $lon);
+		$speed = ($dist / 5280) / ($sec / 60 / 60);
+
+		print "$owhen{$user} $olat{$user},$olon{$user} to $where $date $time ";
+		printf("%d ", $sec);
+		printf("%.4f %.4f ", $dist, $speed);
+		print "0 0 0% G$user\n";
+	}
+
+	$owhen{$user} = $when;
+	$olat{$user} = $lat;
+	$olon{$user} = $lon;
+}
